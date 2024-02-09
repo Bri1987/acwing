@@ -117,6 +117,8 @@ void merge_sort(int q[],int l, int r){
 bool check(int x) {/* ... */} // 检查x是否满足某种性质
 
 // 区间[l, r]被划分成[l, mid]和[mid + 1, r]时使用：
+//找绿
+//找左界限的，第一个....
 int bsearch_1(int l, int r)
 {
     while (l < r)
@@ -128,6 +130,8 @@ int bsearch_1(int l, int r)
     return l;
 }
 // 区间[l, r]被划分成[l, mid - 1]和[mid, r]时使用：
+//找红
+//找右界限的，最后一个....
 int bsearch_2(int l, int r)
 {
     while (l < r)
@@ -569,3 +573,185 @@ int main(){
 }
 ```
 
+
+
+## 第一章 基础算法（三）
+
+### 双指针算法
+
+![image-20240208161839184](./img/image-20240208161839184.png)
+
+### 位运算
+
+1. 求一个整数n的二进制表示的第k位数是几
+
+   - 先把第k位数字移到最后一位 n >> k
+   - 看看个位是几 x& 1
+
+   即(n >> j) & 1
+
+2. lowbit(x): 返回x的最后一个1是多少 , x & -x = x& (~x + 1)可得（可以自己试试，补码,-x与~x+1都是补码），比如10101100返回100
+
+   
+
+   求一个数有多少个1，可以用lowbit思想，减了多少次，就有多少个1
+
+   示例：
+
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   
+   //lowbit(x): 返回x的最后一个1是多少 , x & -x = x& (~x + 1)可得（可以自己试试，补码,-x与~x+1都是补码），比如10101100返回100
+   int lowbit(int x){
+       return x & -x;
+   }
+   
+   int main(){
+       int n;
+       cin >> n;
+       while (n--){
+           int x;
+           cin >> x;
+           //求一个数有多少个1，可以用lowbit思想，减了多少次，就有多少个1
+           int res = 0;
+           while (x){
+               x -= lowbit(x);
+               res++;
+           }
+           cout << res << " ";
+       }
+   }
+   ```
+
+   
+
+### 整数保序离散化
+
+离散化要用vector
+
+
+
+值域大，比如0-10^9，但是个数远不如那么多，但是可能需要开数组，但我们不能开到10 ^9那么大，于是需要选出一些数，映射，比如：
+
+![image-20240208183214019](D:\ClionLinux\acwing\img\image-20240208183214019.png)
+
+这就叫离散化。
+
+问题：
+
+1. a中可能有重复元素，所以需要去重，**去重就是离散化的过程，至于映射关系，没有使用map保存，每次用find现找现算**
+
+   去重写法：
+
+   ```cpp
+   vector<int> alls;    //存储所有待离散化的值
+   sort(alls.begin(),alls.end());     //将所有值排序
+   alls.erase(unique(alls.begin(),alls.end()),alls.end());   //去掉重复元素
+   ```
+
+   unique会把重复元素都丢到后面，erase将重复元素开始的索引到end全给删掉就好
+
+2. 如何算出a[i]离散化后的值是多少（二分）
+
+   ```cpp
+   // 二分求出x对应的离散化的值
+   int find(int x) // 找到第一个大于等于x的位置
+   {
+       int l = 0, r = alls.size() - 1;
+       while (l < r)
+       {
+           int mid = l + r >> 1;
+           if (alls[mid] >= x) r = mid;
+           else l = mid + 1;
+       }
+       //加不加一与题目有关
+       return r + 1; // 映射到1, 2, ...n
+   }
+   ```
+
+   由于这里去重唯一且一定有对应值，所以找红色（右界限，即最后一个小于等于x的位置）也是ok的
+
+   ```cpp
+   //找到最后一个小于等于x的位置
+   int find(int x)
+   {
+       int l = 0, r = alls.size() - 1;
+       while (l < r)
+       {
+           int mid = (l + r + 1) >> 1;
+           if (alls[mid] <= x) l = mid;
+           else r = mid - 1;
+       }
+       return r+1;
+   }
+   ```
+
+   
+
+### 区间合并
+
+1. 按区间左端点排序
+
+2. 扫描整个区间，把所有可能的区间合并
+
+   ![image-20240209103142181](./img/image-20240209103142181.png)
+
+   由于按照左端点排序了，只可能出现三种绿色情况，而不会出现红色情况
+
+   - 每次维护一个当前的区间
+
+   ```cpp
+   // 将所有存在交集的区间合并
+   void merge(vector<PII> &segs)
+   {
+       vector<PII> res;
+   
+       sort(segs.begin(), segs.end());
+   
+       int st = -2e9, ed = -2e9;
+       for (auto seg : segs)
+           //左端大于right，则一定是新段
+           //由于是左端升序，之后的interval的左端也一定大于之前段的right，固之前的段不用再考虑
+           if (ed < seg.first)
+           {
+               if (st != -2e9) res.push_back({st, ed});
+               st = seg.first, ed = seg.second;
+           }
+           else ed = max(ed, seg.second);
+   
+       //这是防止输入区间为空
+       if (st != -2e9) res.push_back({st, ed});
+   
+       segs = res;
+   }
+   ```
+
+   也可以是：
+
+   ```cpp
+   //以左端排序
+       sort(intervals.begin(),intervals.end());
+       int res = 1;
+       int right = intervals[0].second;
+       for(int i = 1; i < n; i++){
+           if(intervals[i].first <= right)
+               right = max( right, intervals[i].second);
+           else{
+               //左端大于right，则一定是新段
+               //由于是左端升序，之后的interval的左端也一定大于之前段的right，固之前的段不用再考虑
+               res++;
+               right = intervals[i].second;
+           }
+       }
+       //判断一下非空
+       if(intervals.empty())
+           res = 0;
+       cout << res << endl;
+   ```
+
+   
+
+# 小技巧
+
+可以专门拿一个数组记录各个元素出现次数，便于判断处理是否重复
