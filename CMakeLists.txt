@@ -4,11 +4,12 @@ project(acwing)
 set(CMAKE_CXX_STANDARD 17)
 
 file(GLOB_RECURSE DIR_BASIC ./basic/*.cpp)
+file(GLOB_RECURSE DIR_STRUCTURE ./structure/*.cpp)
 
 include_directories(.)
 include_directories(basic)
 
-set(SOURCE_FILES ${DIR_BASIC})
+set(SOURCE_FILES ${DIR_BASIC} ${DIR_STRUCTURE})
 
 # 遍历每个源代码文件并添加为可执行文件
 foreach(SOURCE_FILE ${SOURCE_FILES})
