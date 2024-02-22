@@ -634,7 +634,7 @@ int main(){
 
 值域大，比如0-10^9，但是个数远不如那么多，但是可能需要开数组，但我们不能开到10 ^9那么大，于是需要选出一些数，映射，比如：
 
-![image-20240208183214019](D:\ClionLinux\acwing\img\image-20240208183214019.png)
+![image-20240208183214019](./img/image-20240208183214019.png)
 
 这就叫离散化。
 
@@ -1489,6 +1489,183 @@ bitset, 圧位
     reset()  把所有位变成0
     flip()  等价于~
     flip(k) 把第k位取反
+```
+
+
+
+## 第三章 搜索与图论（一）
+
+### DFS , BFS
+
+- DFS：深度优先遍历，从数据结构看是栈，使用的空间更少，不一定是最短路
+
+  DFS求全排列：相当于之前的回溯法：
+
+  ```cpp
+  void backtracking(...){
+      if(终止条件){
+          收集结果；        //通常在叶子结点上
+          return;
+      }
+      for(遍历集合中元素，遍历当前层子结点){
+          处理结点;
+          递归;
+          回溯，去掉处理结点的结果；
+      }
+  }
+  ```
+
+  
+
+- BFS：宽度优先遍历，从数据结构看是队列，使用的空间大一些，（每条路权重相同时）“最短路”
+
+  哪个点被哪条路先走到，这条路一定是最短路之一（严格从小到大走的）
+  
+  ```cpp
+  queue <- 初始路径
+  while(queue不变){
+      //找最短路的话，如果找到终点了就可以return了
+      
+  	t <- 队头
+  	扩展t
+  }
+  ```
+  
+
+
+
+### 树和图的存储 与 深广度遍历
+
+#### 树和图的存储
+
+树是特殊的图，无环连通图
+
+图：无向图是特殊的有向图
+
+有向图：
+
+- 邻接矩阵：二维数组，不能存储重边，g[a] [b] : a -> b
+
+- 邻接表：每一个结点上开一个单链表，一般头插法
+
+  ![image-20240221234919305](./img/image-20240221234919305.png)
+
+  ```cpp
+  // 对于每个点k，开一个单链表，存储k所有可以走到的点。h[k]存储这个单链表的头结点
+  int h[N], e[N], ne[N], idx;
+  
+  // 添加一条边a->b
+  void add(int a, int b)
+  {
+      e[idx] = b, ne[idx] = h[a], h[a] = idx ++ ;
+  }
+  
+  // 初始化
+  idx = 0;
+  memset(h, -1, sizeof h);
+  ```
+
+  
+
+#### 树和图的遍历
+
+深度优先遍历：
+
+```cpp
+int dfs(int u)
+{
+    st[u] = true; // st[u] 表示点u已经被遍历过
+
+    for (int i = h[u]; i != -1; i = ne[i])
+    {
+        //e[i]就是当前u结点能指向的结点
+        int j = e[i];
+        if (!st[j]) dfs(j);
+    }
+}
+```
+
+宽度优先遍历：
+
+```cpp
+queue<int> q;
+st[1] = true; // 表示1号点已经被遍历过
+q.push(1);
+
+while (q.size())
+{
+    int t = q.front();
+    q.pop();
+
+    for (int i = h[t]; i != -1; i = ne[i])
+    {
+        int j = e[i];
+        if (!st[j])
+        {
+            st[j] = true; // 表示点j已经被遍历过
+            q.push(j);
+        }
+    }
+}
+```
+
+
+
+### 拓扑排序
+
+记录入度d[N],值为0时即可进入拓扑排序队列
+
+```cpp
+#include <iostream>
+#include <cstring>
+
+using namespace std;
+const int N = 1000010;
+
+int n;
+int h[N],e[N],ne[N],idx;
+int hh = 0, tt = -1;
+int q[N];
+int d[N];     //记录每个点的入度
+
+void add(int a, int b){
+    e[idx] = b; ne[idx] = h[a]; h[a] = idx++;
+    //增加一个入度
+    d[b]++;
+};
+
+int main(){
+    int m;
+    cin >> n >> m;
+    memset(h,-1,sizeof h);
+    while (m--){
+        int a,b;
+        cin >> a >> b;
+        add(a,b);
+    }
+
+    //先加入所有入度为0的点
+    for (int i = 1; i <= n; i ++ )
+        if (!d[i])
+            q[ ++ tt] = i;
+
+    while (hh <= tt){
+        int head = q[hh ++ ];
+        //当前点由于已经被摘除，它指向的所有点的入度都减1
+        for (int i = h[head]; i != -1; i = ne[i]){
+            int j = e[i];
+            if (-- d[j] == 0)
+                q[ ++ tt] = j;
+        }
+    }
+
+    //!! 如果所有点都入队了，说明存在拓扑序列；否则不存在拓扑序列
+    if(tt == n - 1){
+        for(int i = 0; i <= n - 1; i++)
+            cout << q[i] << " ";
+    }else
+        cout << -1 << endl;
+}
 ```
 
 

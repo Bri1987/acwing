@@ -5,11 +5,14 @@ set(CMAKE_CXX_STANDARD 17)
 
 file(GLOB_RECURSE DIR_BASIC ./basic/*.cpp)
 file(GLOB_RECURSE DIR_STRUCTURE ./structure/*.cpp)
+file(GLOB_RECURSE DIR_SEARCH_GRAPH ./search_graph/*.cpp)
 
 include_directories(.)
 include_directories(basic)
+include_directories(structure)
+include_directories(search_graph)
 
-set(SOURCE_FILES ${DIR_BASIC} ${DIR_STRUCTURE})
+set(SOURCE_FILES ${DIR_BASIC} ${DIR_STRUCTURE} ${DIR_SEARCH_GRAPH})
 
 # 遍历每个源代码文件并添加为可执行文件
 foreach(SOURCE_FILE ${SOURCE_FILES})
