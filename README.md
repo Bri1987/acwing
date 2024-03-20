@@ -1670,6 +1670,311 @@ int main(){
 
 
 
+### 最短路
+
+一般考察如何建图成最短路问题
+
+- 单源最短路：一个点到其他点的最短路径，起点确定
+
+  - 所有边都是正权值
+
+    - 朴素版迪杰斯特拉 n^2^ (n指点数，m指边数) ， **适用于稠密图(边多)，用邻接矩阵**
+    - 堆优化迪杰斯特拉 mlogn ， 适用于稀疏图，**适用于稀疏图，用邻接表**
+
+  - 存在负权边
+
+    - Bellman-Ford O(nm)
+    - SPFA 一般是O(m)，极端还是可能O(nm)
+
+    但是如果最短路经过的边数 <= k：只能有Bellman-Ford
+
+- 多源最短路：源是起点，汇是终点，起点和终点都不确定
+
+  Floyd算法， O(n^3^)
+
+![image-20240226174059814](./img/image-20240226174059814.png)
+
+#### 迪杰斯特拉
+
+##### 朴素版迪杰斯特拉
+
+1. 初始化距离，从1点出发distance[1]=0，distance[其他点] = 正无穷
+
+2. 集合S：当前已经确定最短距离的点
+
+3. for循环n次：
+
+   找到不在s中的距离最近的点t，
+
+   把t加到s里面去，
+
+   用t更新其他所有点的距离：新得到了从t出去的所有的边距离，更新得到最小值
+
+   ```cpp
+   #include <iostream>
+   #include <cstring>
+   
+   using namespace std;
+   
+   /* 本题可以判断是稠密图，可以用邻接矩阵来写 , !! 不是所有都用邻接表才方便的  */
+   
+   const int N = 510;
+   int n , m;   //n个点，m条边
+   int d[N];    //记录1到每个点的距离
+   bool st[N];    //记录点是不是已经确定最短了
+   int g[N][N];    //为稠密阵所以用邻接矩阵存储
+   
+   int dijkstra(){
+       //1.初始化
+       memset(d, 0x3f, sizeof d);
+       d[1] = 0;
+       //st[1] = true;   !! 不能要这句，要从第一个点开始走3. 更新
+   
+       // i只用来计数
+       for(int i = 0;i < n; i++) {     //有n个点所以要进行n次 迭代
+           int t = -1;       //t存储当前访问的点
+   
+           //2. 在还未确定最短路的点中，寻找这个点出发距离最小的点
+           for(int j = 1;j <= n; j++)   //这里的j代表的是从1号点开始
+               if(!st[j] && ( t == -1|| d[t] > d[j]))   //t=-1是第一次，第一次无条件赋值
+                   t = j;
+           st[t] = true;
+   
+           //3. 更新从t出发的能更新的所有点
+           for(int j = 1;j <= n;j++)           //依次更新每个点所到相邻的点路径值
+               d[j] =min(d[j],d[t]+g[t][j]);
+       }
+   
+       if(d[n]==0x3f3f3f3f) return -1;  //如果第n个点路径为无穷大即不存在最低路径
+       return d[n];
+   }
+   
+   int main(){
+       cin >> n >> m;
+       //!! 初始化图 因为是求最短路径 , 所以每个点初始为无限大
+       memset(g,0x3f,sizeof g);
+   
+       for(int i = 0; i < m; i++){
+           int a,b,c;
+           cin >> a >> b >> c;
+           g[a][b]=min(g[a][b],c);     //如果发生重边的情况则保留最短的一条边
+       }
+   
+       cout << dijkstra() << endl;
+   }
+   ```
+
+稀疏图的话这样做会爆掉，把这里N = 1000010就懂了
+
+
+
+##### 堆优化版迪杰斯特拉
+
+迪杰斯特拉在找最小的距离的数这一步是最慢的（第二步），所以用堆优化（使用优先队列模拟堆）
+
+```cpp
+typedef pair<int, int> PII;
+
+int n;      // 点的数量
+int h[N], w[N], e[N], ne[N], idx;       // 邻接表存储所有边
+int dist[N];        // 存储所有点到1号点的距离
+bool st[N];     // 存储每个点的最短距离是否已确定
+
+// 求1号点到n号点的最短距离，如果不存在，则返回-1
+int dijkstra()
+{
+    memset(dist, 0x3f, sizeof dist);
+    dist[1] = 0;
+    priority_queue<PII, vector<PII>, greater<PII>> heap;
+    heap.push({0, 1});      // first存储距离，second存储节点编号
+
+    while (heap.size())
+    {
+        auto t = heap.top();
+        heap.pop();
+
+        int ver = t.second, distance = t.first;
+
+        if (st[ver]) continue;
+        st[ver] = true;
+
+        for (int i = h[ver]; i != -1; i = ne[i])
+        {
+            int j = e[i];
+            if (dist[j] > distance + w[i])
+            {
+                dist[j] = distance + w[i];
+                heap.push({dist[j], j});
+            }
+        }
+    }
+
+    if (dist[n] == 0x3f3f3f3f) return -1;
+    return dist[n];
+}
+```
+
+
+
+
+
+### Bellman-Ford
+
+存图可以用任意方式存
+
+有负权回路的话，最短路径不一定存在：
+
+![image-20240226202322319](./img/image-20240226202322319.png)
+
+1到5不存在最短路
+
+**也可以用来找负环**
+
+```cpp
+int n, m;       // n表示点数，m表示边数
+int dist[N];        // dist[x]存储1到x的最短路距离
+
+struct Edge     // 边，a表示出点，b表示入点，w表示边的权重
+{
+    int a, b, w;
+}edges[M];
+
+// 求1到n的最短路距离，如果无法从1走到n，则返回-1。
+int bellman_ford()
+{
+    memset(dist, 0x3f, sizeof dist);
+    dist[1] = 0;
+
+    // 如果第n次迭代仍然会松弛三角不等式(**即最短路径大于n条边**)，就说明存在一条长度是n+1的最短路径，由抽屉原理，路径中至少存在两个相同的点，说明图中存在负权回路。
+    //           b
+    //      a   
+    //
+    // 点1                  相当于意思就是最终如果都能找到最短路径，则一定构成三角形
+    //即最终dist[b] <= dist[a] + w
+    for (int i = 0; i < n; i ++ ) {
+        for (int j = 0; j < m; j ++ ) {
+            int a = edges[j].a, b = edges[j].b, w = edges[j].w;
+            if (dist[b] > dist[a] + w)
+                dist[b] = dist[a] + w;
+        }
+    }
+
+    if (dist[n] > 0x3f3f3f3f / 2) return -1;
+    return dist[n];
+}
+```
+
+
+
+用备份：
+
+![image-20240226204258342](./img/image-20240226204258342.png)
+
+如果不用备份，1和3的距离会在第一次就被更新为2，是两条边，应该在第二次才被更新出来
+
+
+
+### SPFA
+
+在Bellman-Ford中dist[b] = dist[a] + w，一定是dist[a]变小，dist[b]才会变小
+
+用宽搜优化，队列里存的是所有变小的结点。
+
+1. while 队列不空，取出头元素t
+2. 更新t的所有出边，如果更新成功，就把更新成功的放入队列
+
+队列里面存的是等待更新别的点的点
+
+```cpp
+int n;      // 总点数
+int h[N], w[N], e[N], ne[N], idx;       // 邻接表存储所有边
+int dist[N];        // 存储每个点到1号点的最短距离
+bool st[N];     // 存储每个点是否在队列中
+
+// 求1号点到n号点的最短路距离，如果从1号点无法走到n号点则返回-1
+int spfa()
+{
+    memset(dist, 0x3f, sizeof dist);
+    dist[1] = 0;
+
+    queue<int> q;
+    q.push(1);
+    st[1] = true;
+
+    while (q.size())
+    {
+        auto t = q.front();
+        q.pop();
+
+        st[t] = false;
+
+        for (int i = h[t]; i != -1; i = ne[i])
+        {
+            int j = e[i];
+            if (dist[j] > dist[t] + w[i])
+            {
+                dist[j] = dist[t] + w[i];
+                if (!st[j])     // 如果队列中已存在j，则不需要将j重复插入
+                {
+                    q.push(j);
+                    st[j] = true;
+                }
+            }
+        }
+    }
+
+    if (dist[n] == 0x3f3f3f3f) return -1;
+    return dist[n];
+}
+```
+
+为什么SPFA算法可以解决带负权边的，而迪杰斯特拉算法不行，他们长得那么像？
+
+Dijkstra算法是一种贪婪算法，当图中存在负权边时，Dijkstra算法的贪婪策略会导致无法正确找到最短路径，可能会陷入无限循环。SPFA算法通过使用队列来选择待更新的顶点，以避免Dijkstra算法中的贪婪选择问题。它通过不断更新顶点的最短路径估计值来逐步收敛到最短路径。
+
+（Dijkstra算法中的st数组保存的是当前确定了到源点距离最小的点，且一旦确定了最小那么就不可逆了(不可标记为true后改变为false)；SPFA算法中的st数组仅仅只是表示的当前发生过更新的点，且spfa中的st数组可逆(可以在标记为true之后又标记为false)。顺带一提的是BFS中的st数组记录的是当前已经被遍历过的点）
+
+
+
+#### 找负环
+
+int dist[N], cnt[N];        // dist[x]存储1号点到x的最短距离，cnt[x]存储1到x的最短路中经过的点数
+
+每次更新：
+
+dist[x] = dist[t] + w[i];
+
+cnt[x] = cnt[t] + 1;
+
+如果cnt[x] >= n：如果某条最短路径上有n个点（除了自己），那么加上自己之后一共有n+1个点，由抽屉原理一定有两个点相同，所以存在环。因为只要有负环，求最小值的时候就会一直走那个负环，走过的点数迟早会大于n
+
+
+
+### Floyd
+
+多源汇最短路：
+
+```
+初始化：
+    for (int i = 1; i <= n; i ++ )
+        for (int j = 1; j <= n; j ++ )
+            if (i == j) d[i][j] = 0;
+            else d[i][j] = INF;
+
+// 算法结束后，d[a][b]表示a到b的最短距离
+void floyd()
+{
+    for (int k = 1; k <= n; k ++ )
+        for (int i = 1; i <= n; i ++ )
+            for (int j = 1; j <= n; j ++ )
+                d[i][j] = min(d[i][j], d[i][k] + d[k][j]);
+}
+```
+
+原理：动态规划：==感觉没太理解==
+
+- d[k,i,j]：从i这个点出发，只经过1-k中间点到达j的最短距离
+
 # 小技巧
 
 可以专门拿一个数组记录各个元素出现次数，便于判断处理是否重复
