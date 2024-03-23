@@ -1670,6 +1670,8 @@ int main(){
 
 
 
+## 第三章 搜索与图论（二）
+
 ### 最短路
 
 一般考察如何建图成最短路问题
@@ -1974,6 +1976,254 @@ void floyd()
 原理：动态规划：==感觉没太理解==
 
 - d[k,i,j]：从i这个点出发，只经过1-k中间点到达j的最短距离
+
+
+
+## 第三章 搜索与图论（三）
+
+
+
+![image-20240321234330338](./img/image-20240321234330338.png)
+
+
+
+### 最小生成树
+
+无向图
+
+#### Prim
+
+与迪杰斯特拉**很相似**，复杂度与迪杰斯特拉也相同
+
+- 朴素版：稠密图
+- 堆优化版：稀疏图
+
+**!!! 与迪杰斯特拉不同的点，更新其他点到最小生成树集合的距离，而迪杰斯特拉是更新到起点的距离**
+
+```cpp
+int n;      // n表示点数
+int g[N][N];        // 邻接矩阵，存储所有边
+int dist[N];        // 存储其他点到当前最小生成树的距离
+bool st[N];     // 存储每个点是否已经在生成树中
+
+
+// 如果图不连通，则返回INF(值是0x3f3f3f3f), 否则返回最小生成树的树边权重之和
+int prim()
+{
+    //1. 初始化距离为正无穷
+    memset(dist, 0x3f, sizeof dist);
+
+    int res = 0;
+    for (int i = 0; i < n; i ++ )
+    {
+        //这样和后面t = -1一起，这样至少保证每次能选到一个点
+        int t = -1;
+        //2.找到集合外距离最近的点
+        for (int j = 1; j <= n; j ++ )
+            if (!st[j] && (t == -1 || dist[t] > dist[j]))
+                t = j;
+
+        //第一次肯定是INF
+        if (i && dist[t] == INF) return INF;
+
+        if (i) res += dist[t];
+        st[t] = true;
+
+        //3. 用t来更新其他点到集合的距离
+        //!!! 与迪杰斯特拉不同的点，更新其他点到最小生成树集合的距离，而迪杰斯特拉是更新到起点的距离
+        for (int j = 1; j <= n; j ++ ) dist[j] = min(dist[j], g[t][j]);
+    }
+
+    return res;
+}
+```
+
+
+
+
+
+#### Kruskal
+
+稀疏图用
+
+
+
+1. 对所有边进行排序（注意存储边的数据结构不要用之前的结构，因为是对边遍历，之前那种不方便）
+2. 从权值最小的边开始看，如果边的两侧已被加入一个并查集 即已连通，就跳过该边
+3. cnt代表被加入到生成树中的点数，如果最后比n-1小，说明仍不是所有点都在一个并查集中
+
+
+
+```cpp
+int n, m;       // n是点数，m是边数
+int p[N];       // 并查集的父节点数组
+
+struct Edge     // 存储边
+{
+    int a, b, w;
+
+    bool operator< (const Edge &W)const
+    {
+        return w < W.w;
+    }
+}edges[M];
+
+int find(int x)     // 并查集核心操作
+{
+    if (p[x] != x) p[x] = find(p[x]);
+    return p[x];
+}
+
+int kruskal()
+{
+    sort(edges, edges + m);
+
+    for (int i = 1; i <= n; i ++ ) p[i] = i;    // 初始化并查集
+
+    int res = 0, cnt = 0;
+    for (int i = 0; i < m; i ++ )
+    {
+        int a = edges[i].a, b = edges[i].b, w = edges[i].w;
+
+        a = find(a), b = find(b);
+        if (a != b)     // 如果两个连通块不连通，则将这两个连通块合并
+        {
+            p[a] = b;
+            res += w;
+            cnt ++ ;
+        }
+    }
+
+    if (cnt < n - 1) return INF;
+    return res;
+}
+```
+
+
+
+### 二分图
+
+![image-20240323122219104](./img/image-20240323122219104.png)
+
+#### 染色法
+
+判断一个图是不是二分图，给定0代表没染色，1代表白色，2代表黑色
+
+**一个图是二分图当且仅当图中没有奇数环**
+
+一个点的颜色如果确定了，那与它连通的所有点的颜色也都确定了
+
+1. 遍历每一个点
+2. 对于每一个点，对它dfs，把它连通的点的颜色都确定下来。如果出现了染色矛盾，就说明不是二分图
+
+
+
+```cpp
+#include <iostream>
+#include <cstring>
+
+using namespace std;
+const int N = 100010;
+
+int n;
+// 注意边是2*N
+int e[2*N],ne[2*N],h[N],idx;
+int color[N];
+
+// 添加一条边a->b
+void add(int a, int b){
+    e[idx] = b, ne[idx] = h[a], h[a] = idx ++ ;
+}
+
+bool dna_dfs(int i, int c){
+    color[i] = c;
+    for(int j = h[i]; j != -1; j = ne[j]){
+        int k = e[j];
+        if(!color[k]){
+            if(!dna_dfs(k,3-c))
+                return false;
+        } else if(color[k] == color[i])
+            return false;
+    }
+    return true;
+}
+
+int main(){
+    int m;
+    cin >> n >> m;
+    memset(h,-1,sizeof h);
+    while (m--){
+        int a,b;
+        cin >> a >> b;
+        add(a,b);
+        add(b,a);
+    }
+
+    bool res = true;
+    //注意这里的下标是从1开始!! 因为n >= 1 !
+    for(int i = 1; i <= n; i++){
+        if(!color[i]){
+            if(!(res = dna_dfs(i, 1)))
+                break;
+        }
+    }
+    if(res)
+        puts("Yes");
+    else
+        puts("No");
+}
+```
+
+
+
+#### 匈牙利算法
+
+二分图的匹配：给定一个二分图S，在S的一个子图M中，M的边集{E}中的任意两条边都不依附于同一个顶点，则称M是一个匹配
+
+- **极大匹配**
+  极大匹配是指在当前已完成的匹配下,无法再通过增加未完成匹配的边的方式来增加匹配的边数。（也就是说，再加入任意一条不在匹配集合中的边，该边肯定有一个顶点已经在集合中的边中了）
+- **最大匹配**
+  所有极大匹配当中边数最大的一个匹配
+
+即一定是一对一
+
+思路详见https://blog.csdn.net/Yaoyao2024/article/details/129895964，即如果A和2配对，到C了，只有2一个选择，会去查看A有没有其他备胎，如果有其他备胎，就让A和备胎处，C抢走2
+
+```cpp
+int n1, n2;     // n1表示第一个集合中的点数，n2表示第二个集合中的点数
+int h[N], e[M], ne[M], idx;     // 邻接表存储所有边，匈牙利算法中只会用到从第一个集合指向第二个集合的边，所以这里只用存一个方向的边
+int match[N];       // 存储第二个集合中的每个点当前匹配的第一个集合中的点是哪个
+bool st[N];     // 表示第二个集合中的每个点是否已经被遍历过
+
+bool find(int x)
+{
+    for (int i = h[x]; i != -1; i = ne[i])
+    {
+        int j = e[i];
+        if (!st[j])
+        {
+            st[j] = true;
+            if (match[j] == 0 || find(match[j]))
+            {
+                match[j] = x;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// 求最大匹配数，依次枚举第一个集合中的每个点能否匹配第二个集合中的点
+int res = 0;
+for (int i = 1; i <= n1; i ++ )
+{
+    memset(st, false, sizeof st);
+    if (find(i)) res ++ ;
+}
+```
+
+
 
 # 小技巧
 
