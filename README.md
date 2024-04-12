@@ -2425,6 +2425,206 @@ a mod b = a - c*b
 
 所以两者等价
 
+
+
+### 欧拉函数
+
+1∼N 中与 N 互质的数的个数被称为欧拉函数，记为 ϕ(N)。
+若在算数基本定理中，$N=p_{1}^{a_{1}} p_{2}^{a_{2}} \ldots p_{m}^{a_{m}}$，则：
+$$
+\phi(N)=N \times \frac{p_{1}-1}{p_{1}} \times \frac{p_{2}-1}{p_{2}} \times \ldots \times \frac{p_{m}-1}{p_{m}}
+$$
+原理：假设n只存在质因子p,q, 则与n互质的数的集合需要除去p,2p,3p,⋯,⌊Np⌋以及q,2q,⋯,⌊Nq⌋。根据容斥原理，需要补回pq的倍数pq,2pq,⋯,⌊Npq⌋。因此个数，ϕ(n)=n−n/p−n/q+n/pq=n(1−1p)(1−1q)
+
+
+
+#### 线性筛欧拉
+
+与线性求素数一样：primes[j]一定是primes[j]*i的最小质因子
+
+```cpp
+const int N = 1000010;
+bool st[N];
+int primes[N];
+int euler[N];
+int cnt;
+
+int main(){
+    int n;
+    cin >> n;
+
+    //记得1也有欧拉数
+    euler[1] = 1;
+    for(int i = 2; i <= n; i++){
+        if(!st[i]){
+            //是质数，质数的欧拉数是它自己/自己 * (自己-1)
+            primes[cnt ++ ] = i;
+            euler[i] = i - 1;
+        }
+
+        for(int j = 0; primes[j] <= n / i; j++){
+            int t = primes[j] * i;
+            st[t] = true;
+            if(i % primes[j] == 0){
+                euler[t] = euler[i] * primes[j];
+                break;
+            }
+            euler[t] = euler[i] * (primes[j] - 1);
+        }
+    }
+}
+```
+
+- 质数的欧拉数是它自己/自己 * (自己-1)，也就是自己-1
+- ![image-20240326203337981](./img/image-20240326203337981.png)
+
+欧拉定理：如果a与n互质，a^$\phi(n)$^ mod n = 1
+
+费马小定理：如果a和p互质，且p是质数，则a^p-1^ mod p = 1
+
+
+
+### 快速幂
+
+![image-20240326224220713](./img/image-20240326224220713.png)
+
+左边是预处理，将k写成2进制数的和
+
+左边的预处理，每一个数都是上个数的平方mod p :
+
+![image-20240326224353456](./img/image-20240326224353456.png)
+
+```cpp
+求 m^k mod p，时间复杂度 O(logk)。
+
+int qmi(int m, int k, int p)
+{
+    int res = 1 % p, t = m;
+    while (k)
+    {
+        if (k&1) res = res * t % p;
+        t = t * t % p;
+        k >>= 1;
+    }
+    return res;
+}
+```
+
+比如求4^5^ mod 10:
+
+预处理出4^2的0次方^ mod 10 = 4, 4^2的1次方^ mod 10 = 6（4 * 4 mod 10）, 4^2的2次方^ mod 10 = 6（6 * 6 mod 10）
+
+5 = (101)~2~  = 2^0^ + 2^2^  , 4*6 mod 10 = 4（注意是乘！） 
+
+
+
+#### 逆元
+
+![image-20240329231644531](./img/image-20240329231644531.png)
+
+b的逆元：b^-1^
+
+<img src="./img/image-20240329232110087.png" alt="image-20240329232110087" style="zoom:50%;" />
+
+因为b与m互质，a与a* b * b^-1^同余，余数是a和b和b逆元模m结果相乘，说明b * b^-1^ mod m = 1
+
+然后用费马定理（费马小定理：如果a和p互质，且p是质数，则a^p-1^ mod p = 1），后略 
+
+
+
+### 扩展欧几里得算法
+
+裴蜀定理：有一对正整数a,b，那么一定存在非0整数x,y，使得ax+by = (a,b)
+
+![image-20240329233257676](./img/image-20240329233257676.png)
+
+```cpp
+// 求x, y，使得ax + by = gcd(a, b)
+//返回最小公约数
+//a > b
+int exgcd(int a, int b, int &x, int &y)
+{
+    if (!b)      //a % b = 0
+    {
+        x = 1; y = 0;
+        return a;
+    }
+    //y' x'代表上一层的结果
+    //d : by' + (a mod b)*x' = (b,a % b) = (a,b)
+    //a % b = a - [a/b]*b ，其中[]指下取整 =>
+    //d : by' + (a - [a/b]*b)*x' = (a,b) =>
+    //ax' + b(y' - [a/b]*x') = d , 即x不用变，y要减去后面那截
+    //x=x' , y = y' - [a/b]*x'
+    
+    //注意这里是传入y,x !!
+    int d = exgcd(b, a % b, y, x);
+    y -= (a/b) * x;
+    return d;
+}
+```
+
+得到一个解ax + by = d之后，由于(a,b)=d，所以a(x - b/d) + b(y + a/d) = d，即推得所有解
+
+
+
+#### 线性同余方程
+
+ax与b对m同余，说明ax=my+b
+
+所以ax-my=b，令y'=y，即ax+my'=b
+
+**这个方程有解的==充分必要==条件是(a,m) | b**，因为：
+
+方程有解=>(a,m) | b： a是(a,m)的倍数，m是(a,m)的倍数，ax-my也一定是(a,m)的倍数
+
+(a,m) | b=>方程有解：扩展欧几里得ax+my = gcd(a,b)有解，扩大一下gcd倍数一定也有解（线性的，系数乘对应倍数就行）
+
+
+
+### 中国剩余定理
+
+https://blog.csdn.net/qq_43589852/article/details/128469183
+
+给定一堆==**两两互质**==的数m1...mk
+
+Mi等于除了mi以外，其他所有m的乘积，所以Mi（相当于是满足整除其他m）与mi互质，于是就能求出Mi^-1^，即Mi的模mi的乘法逆元
+
+满足Mi | a时，$\frac{a}{M_{i}} \equiv a \times x(\bmod m_{i})$
+
+![image-20240406235557058](D:\ClionLinux\acwing\image-20240406235557058.png)
+
+
+
+对于ax同余1(mod m)的理解可以看看链接，带入上面latex公式的a为a*Mi（a其实就是图里的a1,a2...）
+
+${a} \equiv a*M_{i} \times M_{i}^{-1}(\bmod m_{i})$，Mi * Mi^-1^ = 1(mod m)，推导见逆元处
+
+看每一项是否成立，比如看a1 mod m1，对于右式的第一部分mod数为a1，其他项M都整除m1，mod结果为0，加起来是1
+
+其中由于mi可能不是正数，求Mi^-1^时需用扩展欧几里得，ax+my = 1，由于m是a的余数，gcd(a,m)=1
+
+
+
+具体题目：
+
+没有两两互质的前提！先考虑两个方程的情况：
+
+![image-20240410235930122](./img/image-20240410235930122.png)
+
+于是：
+
+![image-20240411000524869](./img/image-20240411000524869.png)
+
+（右->左），[a1,a2]是最小公倍数，最右下方那个是扩展欧几里得的通解。
+
+当最后得到左边x=x0+ka之后，就与右边最开始时的x=k1a1+m1结构相似，可以继续往下迭代发展：新a1就是上一次的[a1,a2]最小公倍数，新m1就是上一次的x0,即a1k1+m1，然后就可以继续k1a1+m1=k2a2+m2了
+
+
+
+每次将一个新的方程合并到现有方程当中
+
+
+
 # 小技巧
 
 可以专门拿一个数组记录各个元素出现次数，便于判断处理是否重复
