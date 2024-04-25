@@ -5,7 +5,7 @@ double f_bsearch(double l,double r,double val){
     //1e-6表示的是十进制中的小数位数，即0.000001。然而，当这个小数转换为二进制表示时，可能会产生无限循环的二进制小数。
     //因此，使用1e-6（或更大的精度）作为精度值时，可能会导致舍入误差和截断误差的累积，从而无法得到预期的精确结果。
     const double eps = 1e-7;
-
+    //注意eps是用在while里，中间的mid*mid*mid == val是等号#in
     while (r - l > eps){
         double mid = (r + l) / 2;
         if(mid*mid*mid == val)

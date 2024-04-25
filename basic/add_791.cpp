@@ -33,7 +33,7 @@ int main(){
         B.push_back(b[i] - '0');
 
     std::vector<int> C = add(A,B);
-    for (int i = C.size() - 1; i < C.size(); i--){
+    for (int i = C.size() - 1; i >= 0; i--){
         std::cout << C[i] ;
     }
 }
