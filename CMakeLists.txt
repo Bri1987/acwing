@@ -9,6 +9,7 @@ file(GLOB_RECURSE DIR_SEARCH_GRAPH ./search_graph/*.cpp)
 file(GLOB_RECURSE DIR_MATH_KNOWLEDGE ./math_knowledge/*.cpp)
 file(GLOB_RECURSE DIR_DP ./dp/*.cpp)
 file(GLOB_RECURSE DIR_GREEDY ./greedy/*.cpp)
+file(GLOB_RECURSE DIR_PRACTICE ./practice/*.cpp)
 
 include_directories(.)
 include_directories(basic)
@@ -17,8 +18,9 @@ include_directories(search_graph)
 include_directories(math_knowledge)
 include_directories(dp)
 include_directories(greedy)
+include_directories(practice)
 
-set(SOURCE_FILES ${DIR_BASIC} ${DIR_STRUCTURE} ${DIR_SEARCH_GRAPH} ${DIR_MATH_KNOWLEDGE} ${DIR_DP} ${DIR_GREEDY})
+set(SOURCE_FILES ${DIR_BASIC} ${DIR_STRUCTURE} ${DIR_SEARCH_GRAPH} ${DIR_MATH_KNOWLEDGE} ${DIR_DP} ${DIR_GREEDY} ${DIR_PRACTICE})
 
 # 遍历每个源代码文件并添加为可执行文件
 foreach(SOURCE_FILE ${SOURCE_FILES})
