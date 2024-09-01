@@ -3493,6 +3493,40 @@ int main(){
 
 
 
+#### 每次合并k堆
+
+用dfs，定义dfs(i,j,p)表示把stones[i]到stones[j]合并成p堆的最低成本
+
+```cpp
+	int sum[N];
+    int memo[N][N][N];
+    int dfs(int st, int ed, int needNums, vector<int>& stones, int k){
+        if(needNums == 1){
+            //注意只有一个的话就不用单独算了, 直接在sum里就加过了
+            if(st == ed)
+                return 0;
+            return dfs(st,ed,k,stones,k) + sum[ed+1] - sum[st];
+        }
+
+        if(memo[st][ed][needNums] != -1)
+            return memo[st][ed][needNums];
+        int res = 1e9;
+        // i = st开始, 无论如何都可以i=st自成一堆
+        // i += k-1, 如果是k=2, i每次只动一个, 能保证2个,3个最后变成一堆都是有可能的
+        // 如果k=3, i 每次动两个(1->3->5), 能保证最终能合成为一堆
+        // i = ed是不现实的
+        // 注意只考虑1和needNums-1的情况就好, 1的情况会慢慢拆分的, 只有用1->k这样慢慢走下来才能保证永远是能分成正确堆的, 别的错误情况不用考虑
+        // 其实也还是有一些错误情况是无法避免的, 但至少可以排除一些错误情况不用考虑
+        for(int i = st; i < ed; i += k-1){
+            res = min(res, dfs(st,i,1,stones,k) + dfs(i+1,ed,needNums-1,stones,k));
+        }
+        memo[st][ed][needNums] = res;
+        return res;
+    }
+```
+
+
+
 ## 第五章 动态规划（三）
 
 ### 计数类dp
@@ -3527,6 +3561,68 @@ for(int i = 1; i <= n; i++)
 
 ![image-20240423202317838](./img/image-20240423202317838.png)
 
+dfs：
+
+```cpp
+#include <iostream>
+#include <cstring>
+
+using namespace std;
+const int N = 12;
+// 记忆化，前i位有j个number的时候, 并且不受到isLimit的限制, 有多少种情况
+int memo[N][N];
+
+// 填数法
+// 1. 把num转成字符串
+// i从0-(len-1)位填每一位, cnt代表计数(填了0-i位有几位是number)
+// number : 0-9, 需要求的数字个数
+// isLimit : 是否踩在极限上, 比如前面全部都是up, 即123目前填了1，那么第二位isLimit=true, 只能填0-2; 但是如果第一个填0, 第二位就可以是0-9
+// isNum : 目前是不是一个数, 比如009我们认为它不是一个数, 9才是，所以009的两个0不能被计入
+int dfs(int i, int cnt, int number, bool isLimit, bool isNum, string s){
+    if(i == s.length())
+        return cnt;
+    if(!isLimit && isNum && memo[i][cnt] != -1)
+        return memo[i][cnt];
+
+    int up = isLimit ? s[i] - '0' : 9;
+    int res = 0;
+    for(int d = 0; d <= up; d++){
+        // cnt : 如果d是number并且当前这个是一个正确的数, 或者有了这一位就能变成一个正确的数
+        // isLimit: 如果之前一直踩在limit上, 并且这次也是, isLimit才为true
+        // isNum : 当前已经是个正确的数, 或者当前不正确但是有了这一位就是正确的数了
+        res += dfs(i+1, cnt + (d == number && (isNum || d != 0)), number, isLimit && (d == up), isNum || d != 0, s);
+    }
+    // 注意记忆化这里加isNum, 如果连正确的数都不是, 那更不可能是前i个有j个number, 不能被记忆化
+    if(!isLimit && isNum)
+        memo[i][cnt] = res;
+    return res;
+}
+
+int main(){
+    int a,b;
+    while(cin >> a >> b, a || b){
+        if(a > b)
+            swap(a,b);
+        string sa = to_string(a-1), sb = to_string(b);
+        for(int i = 0; i <= 9 ; i++){
+            memset(memo,-1,sizeof memo);
+            // isLimit : 无论如何第一次都受到第一位的限制, 一定为true
+            // isNum : 目前一个都没填, 一定不是一个正确的数
+            int res1 = dfs(0,0,i,true,false,sb);
+            memset(memo,-1,sizeof memo);
+            int res2 = dfs(0,0,i,true,false,sa);
+            cout << res1 - res2 << " ";
+        }
+        cout << endl;
+    }
+    return 0;
+}
+```
+
+
+
+
+
 ### 状态压缩dp
 
 #### 蒙德里安的梦想
@@ -3536,6 +3632,10 @@ https://blog.csdn.net/m0_63222058/article/details/132494044
 https://blog.csdn.net/m0_73953115/article/details/136943839
 
 用0101这种二进制表示一个状态
+
+1. 单看一列看什么情况下合法
+2. 预处理每一个state可以被合理的前一个什么样的state转换过来
+3. dp
 
 
 
@@ -3875,6 +3975,136 @@ for (int i = 1; i <= n; i ++ )
 ### 背包-混合背包
 多重背包用二进制转为01背包，完全背包取的最大个数为总体积/单个物品体积，完全背包->多重背包->01背包，最终就是01背包问题。
 
+
+
+### 单调数组对的数目
+
+将两个关系转化为对一个变量的限制
+
+注意用前缀和优化的时候！每次要算到mx，不能只算到nums[i]为止！！因为超过nums[i]但是小于mx的部分，前缀和不为0
+
+
+
+### 背包-潜水员
+
+https://www.acwing.com/blog/content/458/
+
+### 背包-机器分配
+主要就是找到最大盈利值的情况下, 具体物品是怎么分配的
+从最后一个物品开始dfs倒推
+```cpp
+// 状态转移，从后往前推
+// 当前关注的物品idx, 剩的价值, 最大的还可以分配的物品数
+void dfs(int i, int mx, int cur_v) {
+    if(i == 0)
+        return;
+    for(int k = 0; k <= cur_v; k++){
+        if(f[i-1][k] + a[i][cur_v-k] == mx){
+            mx -= a[i][cur_v-k];
+            vec.push_back({i,cur_v-k});
+            dfs(i-1, mx, k);
+            return;
+        }
+    }
+}
+```
+
+### 背包-最优方案数
+记录最优方案数, 记录f是走的哪一边, 不选i, g就继承`g[i-1][j]`; 选i, g就继承`g[i-1][j-v_[i]]`;
+如果都相同，就说明都是最优的, g就等于两者相加
+注意初始化 !!! 在前0个物品中选, 无论v是多少, 最优方案数都是不选为1
+
+### 背包-求最佳分配方案
+1. 因为后续dfs要从1开始, 所以前面算最大值是i是选从后往前数多少个元素, 注意最大值是`f[1][v]`
+2. 还是dfs，但是注意这个和之前1013的区别是不是每一个元素都必须被选, 外面还要套一层选i的for循环
+
+
+
+### 状态压缩dp-小国王
+
+![image-20240829113106817](./img/image-20240829113106817.png)
+
+
+
+### 状态压缩dp-炮兵阵地
+
+注意状态表示是：`int f[2][S][S];    // 做了前i行，i行的状态是j, i-1行状态是k, 能放下多少个`
+
+第一维用了滚动数组，因为只需要上一层的值，只保留上一层就够了
+
+
+
+### 数位dp-度的数量
+
+注意需要先把int类型的x转化为b进制的字符串
+
+比如如果转化后为201, 就说明需要用至少3个该进制数才能表示(比如10进制下的201是100+100+1)
+题目中要求数不相同，说明转化后必须为1或0的字符串才能满足要求
+
+
+
+### 树形dp-树的最长路径
+
+在树中找出一条 路径，使得该 路径 上所有 边 的 权值之和 最大
+
+对于给定拓扑结构的树里的任意节点，经过他的路径有：
+
+![image-20240831231236133](./img/image-20240831231236133.png)
+
+dfs一直走到最底部，
+
+```cpp
+if (f1[j] + w[i] >= f1[u]) f2[u] = f1[u] ,f1[u] = f1[j] + w[i]; //最长路转移
+else if (f1[j] + w[i] > f2[u]) f2[u] = f1[j] + w[i];            //次长路转移
+```
+
+最后：
+
+`res = max(res, f1[u] + f2[u]);`
+
+
+
+### 树形dp-二叉苹果树
+
+转化为分组背包：以1为根节点的树, 分配k条边, 即k个体积
+
+注意体积一定从大到小枚举！
+
+```cpp
+void dfs(int root, int p){
+    // 三重循环
+    // 二叉: 有两个物品组, 分组背包
+    // 1. 循环分组
+    for(int i = h[root]; i != -1; i = ne[i]){
+        int j = e[i];
+        if(j != p){
+            dfs(j,root);
+            // 2. 循环分配给到这个root的体积数
+            // ! 注意这个从大到小的顺序
+            //j 是从大到小枚举的，因此一定用的是旧状态更新，肯定不会用到当前正在枚举的子树, 要用旧的f[root][a - b - 1], 不能让它先被更新
+            // 这里和平常分组背包不同是因为需要的是左+右, 但是一次只能选择加左或加右, 所以姚保证这个顺序
+            for(int a = k; a >= 0; a--){
+                // 3. 循环决策
+                //枚举体积预留一条连向父节点的边
+                for(int b = 0; b <= a - 1; b++){
+                    f[root][a] = max(f[root][a], f[root][a - b - 1] + f[j][b] + w[i]);
+                }
+            }
+        }
+    }
+}
+```
+
+
+
+### 树形dp-皇宫守卫
+
+注意形状是树，则我们能人为找到一个根**（我们一定能选出一个root(既然是树, 一定有一个点是没有被任何边指向的）**
+
+状态dp：0 : 父节点守卫, 1: 子节点守卫, 2: 自己守卫
+
+
+
 ## 图
 
 ### 单源最短路-最优乘车
@@ -3917,6 +4147,12 @@ for (int i = 1; i <= n; i ++ )
 ![image-20240727175512921](./img/image-20240727175512921.png)
 
 ![image-20240727175605992](./img/image-20240727175605992.png)
+
+### 单源最短路-选择最佳线路
+
+这道题目有一个特点，就是有多个起点。
+我们可以建立一个虚拟的原点，把原点向所有起点连一条边，价值为0，这样就不会影响答案。
+所以，直接以虚拟原点为起点，做一遍spfa。
 
 ## 高级数据结构
 
